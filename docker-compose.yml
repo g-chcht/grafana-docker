@@ -1,0 +1,74 @@
+version: "3.8"
+
+networks:
+  grafana:
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.16.0
+    user: "${USERIDS}"
+    volumes:
+      - ./prometheus/:/etc/prometheus/:ro
+      - ./prometheus-data/:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=90d"
+    ports:
+      - 9090:9090
+    healthcheck:
+      test: ["CMD", "wget", "-nv", "-t1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    networks:
+      - grafana
+
+  loki:
+    image: grafana/loki:1.6.1
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - grafana
+
+  promtail:
+    image: grafana/promtail:1.6.1
+    volumes:
+      - ./promtail/:/etc/promtail/:ro
+      - /var/log:/var/log:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - grafana
+
+  grafana:
+    # image: grafana/grafana:7.1.5
+    image: grafana/grafana:7.2.0
+    user: "${USERIDS}"
+    volumes:
+      - ./grafana-data/:/var/lib/grafana
+    ports:
+      - 3000:3000
+    networks:
+      - grafana
+      
+  cadvisor:
+    image: gcr.io/google-containers/cadvisor:latest
+    container_name: cadvisor
+    command: 
+      # - '--housekeeping_interval=15s'
+      - '--docker_only=true'
+      - '--allow_dynamic_housekeeping=true'
+    ports:
+      - 18080:8080
+    networks:
+      - grafana
+    volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+    
+    

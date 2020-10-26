@@ -1,0 +1,3 @@
+ID : 1860 #System monitoring with nodeexporter
+ID : 893 #Docker with cAdvisor
+ID : 12611 #loki
